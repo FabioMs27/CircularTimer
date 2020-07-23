@@ -1,6 +1,6 @@
 //
 //  AppDelegate.swift
-//  CircularTimerExemples
+//  CircularTimerExamples
 //
 //  Created by Fábio Maciel de Sousa on 22/07/20.
 //  Copyright © 2020 Fábio Maciel de Sousa. All rights reserved.
