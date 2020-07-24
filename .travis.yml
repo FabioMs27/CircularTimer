@@ -1,10 +1,5 @@
-language: objective-c
-
 osx_image: xcode11.5
 os: osx
-env:
-  jobs:
-    - TEST_SDK=iphonesimulator10.15.4 OS=10.15.4 NAME='iPhone 11'
+language: swift
 
-script:
-  - set -o pipefail && xcodebuild test -enableCodeCoverage YES -project CircularTimer.xcodeproj -scheme CircularTimer -sdk $TEST_SDK -destination "platform=iOS Simulator,OS=$OS,name=$NAME" ONLY_ACTIVE_ARCH=YES
+script: xcodebuild clean test -project CircularTimer.xcodeproj -scheme "CircularTimer" -destination "name=iPhone 11,OS=13.5" ONLY_ACTIVE_ARCH=NO CODE_SIGNING_REQUIRED=NO
