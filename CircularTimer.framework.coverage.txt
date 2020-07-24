@@ -1,0 +1,600 @@
+/Users/fabioms/Desktop/CircularTimer/CircularTimer/CircleTimerView.swift:
+    1|       |//
+    2|       |//  CircleTimerView.swift
+    3|       |//  PODTEST
+    4|       |//
+    5|       |//  Created by Fábio Maciel de Sousa on 07/06/20.
+    6|       |//  Copyright © 2020 Fábio Maciel de Sousa. All rights reserved.
+    7|       |//
+    8|       |
+    9|       |import UIKit
+   10|       |
+   11|       |///Class that handles timer's progression bar and it's animations
+   12|       |public class CircleTimerView: UIView {
+   13|       |    //MARK: - Atributes
+   14|       |    private static let animationDuration = CFTimeInterval(60)
+   15|     16|    private let π = CGFloat.pi
+   16|     16|    let startAngle = 1.5 * CGFloat.pi
+   17|     16|    var circleStrokeWidth = CGFloat(2)
+   18|     16|    var ringStrokeWidth = CGFloat(5)
+   19|     16|    public var date = Date()
+   20|       |    var wentToBackground = false
+   21|       |    var canAdaptTimerFormat = true
+   22|     16|    var proportion = CGFloat(0) {
+   23|     10|        didSet {
+   24|     10|            setNeedsLayout()
+   25|     10|        }
+   26|       |    }
+   27|       |    var isRunning = false
+   28|       |    var totalTime: CGFloat = 0.0
+   29|     16|    var timeTracker = TimeTracker()
+   30|       |    ///Circle path layer
+   31|      2|    lazy var circleLayer: CAShapeLayer = {
+   32|      2|        let circleLayer = CAShapeLayer()
+   33|      2|        circleLayer.strokeColor = #colorLiteral(red: 0.3490196078, green: 0.4941176471, blue: 0.4862745098, alpha: 1)
+   34|      2|        circleLayer.fillColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0)
+   35|      2|        circleLayer.lineWidth = self.circleStrokeWidth
+   36|      2|        self.layer.addSublayer(circleLayer)
+   37|      2|        return circleLayer
+   38|      2|    }()
+   39|       |    ///Ring layer that goes through the circle path
+   40|     10|    lazy var ringLayer: CAShapeLayer = {
+   41|     10|        let ringlayer = CAShapeLayer()
+   42|     10|        ringlayer.fillColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0)
+   43|     10|        ringlayer.strokeColor = #colorLiteral(red: 0.3490196078, green: 0.4941176471, blue: 0.4862745098, alpha: 1)
+   44|     10|        ringlayer.lineCap = CAShapeLayerLineCap.round
+   45|     10|        ringlayer.lineWidth = self.ringStrokeWidth
+   46|     10|        self.layer.addSublayer(ringlayer)
+   47|     10|        return ringlayer
+   48|     10|    }()
+   49|       |    ///Pin layer that follows ring
+   50|     10|    lazy var pinLayer: CAShapeLayer = {
+   51|     10|        let pinlayer = CAShapeLayer()
+   52|     10|        pinlayer.fillColor = #colorLiteral(red: 0.3490196078, green: 0.4941176471, blue: 0.4862745098, alpha: 1)
+   53|     10|        self.layer.addSublayer(pinlayer)
+   54|     10|        return pinlayer
+   55|     10|    }()
+   56|       |    ///Circle background
+   57|      2|    lazy var circleBackgroundLayer: CAShapeLayer = {
+   58|      2|        let circleBackground = CAShapeLayer()
+   59|      2|        circleBackground.fillColor = #colorLiteral(red: 0.8980392157, green: 0.9019607843, blue: 0.862745098, alpha: 1)
+   60|      2|        self.layer.addSublayer(circleBackground)
+   61|      2|        circleBackground.zPosition =  -100
+   62|      2|        return circleBackground
+   63|      2|    }()
+   64|       |    ///Timer Label
+   65|      3|    lazy var timerLabel: UILabel = {
+   66|      3|        let w: CGFloat = (107.33 * self.frame.width) / 208
+   67|      3|        let h: CGFloat = (36.67 * self.frame.height) / 187
+   68|      3|        let x = (self.frame.size.width / 2) - (w / 2)
+   69|      3|        let y = (self.frame.size.height / 2) - (h / 2)
+   70|      3|        let timerLabel = UILabel(frame: CGRect(x: x, y: y, width: w, height: h))
+   71|      3|        timerLabel.font = UIFont(name: "GillSans-Light", size: 32.0)
+   72|      3|        timerLabel.textAlignment = .center
+   73|      3|        timerLabel.textColor = #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1)
+   74|      3|        addSubview(timerLabel)
+   75|      3|        return timerLabel
+   76|      3|    }()
+   77|       |    
+   78|       |    //MARK: - Methods
+   79|       |    /**
+   80|       |    Method called when view is set and presented. Set the timer to a default value
+   81|       |    */
+   82|      1|    override public func willMove(toSuperview newSuperview: UIView?) {
+   83|      1|        setTimerValue(60)
+   84|      1|    }
+   85|       |    
+   86|       |    /**
+   87|       |     Method called when view is loaded. It draws the layers.
+   88|       |     */
+   89|      2|    override public func layoutSubviews() {
+   90|      2|        super.layoutSubviews()
+   91|      2|        //Get the radius according to the custom view's size
+   92|      2|        let radius = (min(frame.size.width, frame.size.height) - ringStrokeWidth - 2)/2
+   93|      2|
+   94|      2|        //Setting elements' position and paths
+   95|      2|        let size = self.frame.size
+   96|      2|        let pos = CGPoint(x: size.width/2, y: size.height/2)
+   97|      2|        let circlePath = UIBezierPath(arcCenter: pos, radius: radius, startAngle: startAngle, endAngle: startAngle + 2 * π, clockwise: true)
+   98|      2|        circleLayer.path = circlePath.cgPath
+   99|      2|        ringLayer.path = circlePath.cgPath
+  100|      2|        ringLayer.strokeEnd = proportion
+  101|      2|        pinLayer.position = pos
+  102|      2|        circleBackgroundLayer.position = pos
+  103|      2|        
+  104|      2|        //Getting the formatter
+  105|      2|        guard let f = timeTracker.timerFormatDelegate else {return}
+  106|      1|        
+  107|      1|        //Set timer label which will be customizable (can also be invisible)
+  108|      1|        timerLabel.text = f.secondsToString(with: timeTracker.configTime)
+  109|      1|    }
+  110|       |    
+  111|       |    /**
+  112|       |     Method that starts the progress animation
+  113|       |     - Parameter startProportion: point in percentage of where the animation will start in the circle.(0 to 1)
+  114|       |     - Parameter startPinPos: angle in which the pin will start in the circle. It ranges from 0 to 360 (pi * 2)
+  115|       |     - Parameter endProportion: point in percentage of where the animation will end in the circle.(0 to 1)
+  116|       |     - Parameter duratino: The duration in seconds for the animations. It comes with a default value.
+  117|       |     - Precondition: Animation can't be running already. Variable `isRunning` must be set to false.
+  118|       |     */
+  119|      9|    func animateRing(FromStroke startProportion: CGFloat,FromAngle startPinPos: CGFloat, To endProportion: CGFloat, Duration duration: CFTimeInterval = animationDuration, timing: CAMediaTimingFunctionName? = .linear) {
+  120|      9|        if self.isRunning{return}
+  121|      8|        
+  122|      8|        self.isRunning = true
+  123|      8|        let animation = CABasicAnimation(keyPath: "strokeEnd")
+  124|      8|        animation.duration = duration
+  125|      8|        animation.fromValue = startProportion
+  126|      8|        animation.toValue = endProportion
+  127|      8|        animation.timingFunction = CAMediaTimingFunction(name: timing!)
+  128|      8|        ringLayer.strokeEnd = 1
+  129|      8|        ringLayer.strokeStart = 0
+  130|      8|        ringLayer.add(animation, forKey: "animateRing")
+  131|      8|        //Pin animation settup
+  132|      8|        let pinAnimation = CABasicAnimation(keyPath: "transform.rotation")
+  133|      8|        pinAnimation.fromValue = startPinPos
+  134|      8|        pinAnimation.toValue = 2 * CGFloat.pi
+  135|      8|        pinAnimation.timingFunction = CAMediaTimingFunction(name: timing!)
+  136|      8|        pinAnimation.duration = duration
+  137|      8|        pinAnimation.isAdditive = true
+  138|      8|                
+  139|      8|        //Start animation
+  140|      8|        pinLayer.add(pinAnimation, forKey: "animatePin")
+  141|      8|    }
+  142|       |    /**
+  143|       |     Method for removing animation when finished or reseted
+  144|       |     */
+  145|      9|    func removeAnimation(){
+  146|      9|        pinLayer.removeAllAnimations()
+  147|      9|        ringLayer.removeAllAnimations()
+  148|      9|        proportion = 0
+  149|      9|        isRunning = false
+  150|      9|    }
+  151|       |    
+  152|       |    /**
+  153|       |     Method that sets up timer's value.
+  154|       |     - Parameter value: value which will be used on the timer``
+  155|       |     */
+  156|      8|    public func setTimerValue(_ value: Int){
+  157|      8|        timeTracker.configTime = value
+  158|      8|        timeTracker.defaultTime = value
+  159|      8|        if !canAdaptTimerFormat {return}
+  160|      8|        if value >= 60, value < 3600{
+  161|      3|            timeTracker.timerFormatDelegate = Minute()
+  162|      8|        }else if value >= 3600{
+  163|      1|            timeTracker.timerFormatDelegate = Hour()
+  164|      8|        }else{
+  165|      7|            timeTracker.timerFormatDelegate = Second()
+  166|      8|        }
+  167|      8|    }
+  168|       |}
+  169|       |
+  170|       |/// Extension for the methods regarding counting on background
+  171|       |extension CircleTimerView: BackgroundCountable{
+  172|       |    
+  173|       |    public var isValid: Bool{
+  174|      6|        get{
+  175|      6|            return timeTracker.timer.isValid
+  176|      6|        }
+  177|       |    }
+  178|       |    ///Call the timer's to start closure and update view
+  179|      3|    public func startTimer(){
+  180|      4|        timeTracker.startTimer { (countDown, hasEnded) in
+  181|      4|            self.timerLabel.text = countDown
+  182|      4|            if hasEnded{
+  183|      2|                self.isRunning = false
+  184|      2|                self.stopTimer()
+  185|      4|            }
+  186|      4|        }
+  187|      3|        if !isRunning {
+  188|      2|          animateRing(FromStroke: 0, FromAngle: 0, To: 1, Duration: CFTimeInterval(timeTracker.configTime))
+  189|      2|            timeTracker.defaultTime = timeTracker.configTime
+  190|      3|        }else if layer.speed == 0.0{
+  191|      1|            resumeAnimation()
+  192|      3|        }
+  193|      3|    }
+  194|       |    ///Call the timer to stop and update view
+  195|      6|    public func stopTimer(){
+  196|      6|        resumeAnimation()
+  197|      6|        timeTracker.timer.invalidate()
+  198|      6|        timeTracker.configTime = timeTracker.defaultTime
+  199|      6|        removeAnimation()
+  200|      6|    }
+  201|       |    ///Call the timer to pause and update view
+  202|      1|    public func pauseTimer(){
+  203|      1|        timeTracker.configTime = timeTracker.countDown
+  204|      1|        timeTracker.timer.invalidate()
+  205|      1|        pauseAnimation()
+  206|      1|    }
+  207|       |    ///Update the view by starting paused animation
+  208|      2|    func pauseAnimation(){
+  209|      2|        let pausedTime = layer.convertTime(CACurrentMediaTime(), from: nil)
+  210|      2|        layer.speed = 0.0
+  211|      2|        layer.timeOffset = pausedTime
+  212|      2|    }
+  213|       |    ///Call the timer to resume and update the view
+  214|      7|    func resumeAnimation(){
+  215|      7|        let pausedTime = layer.timeOffset
+  216|      7|        layer.speed = 1.0
+  217|      7|        layer.timeOffset = 0.0
+  218|      7|        layer.beginTime = 0.0
+  219|      7|        let timeSincePause = layer.convertTime(CACurrentMediaTime(), from: nil) - pausedTime
+  220|      7|        layer.beginTime = timeSincePause
+  221|      7|    }
+  222|       |    
+  223|       |    /**
+  224|       |     Enter background and keep counting.
+  225|       |     This method should be used in the SceneDelegate when it goes to the background so it gets the time which you entered Background.
+  226|       |     */
+  227|      1|    public func enterBackground(){
+  228|      1|        date = Date()
+  229|      1|        totalTime = CGFloat(timeTracker.defaultTime)
+  230|      1|        wentToBackground = true
+  231|      1|    }
+  232|       |    /**
+  233|       |    Enter Foreground and update View.
+  234|       |    This method should be used in the SceneDelegate when it goes to the Foreground so it gets the current time and update the view.
+  235|       |    */
+  236|      2|    public func enterForeground(){
+  237|      2|        if !wentToBackground{return}
+  238|      2|        self.isRunning = false
+  239|      2|        self.wentToBackground = false
+  240|      2|        let seconds = Int(date.distance(to: Date()))
+  241|      2|        if isValid{timeTracker.countDown -= seconds}
+  242|      2|        let startValue = calculateStartingPoint(By: CGFloat(timeTracker.countDown), To: 1)
+  243|      2|        let startAngle = calculateStartingPoint(By: CGFloat(timeTracker.countDown), To: (2 * CGFloat.pi))
+  244|      2|        animateRing(FromStroke: startValue, FromAngle: startAngle, To: 1, Duration: CFTimeInterval(timeTracker.countDown))
+  245|      2|        if layer.speed == 0.0{
+  246|      1|            pauseAnimation()
+  247|      2|        }
+  248|      2|    }
+  249|       |    
+  250|       |    /**
+  251|       |     Method that calculates the starting point for when app went to background.
+  252|       |     ```
+  253|       |     func calculateStartingPoint(By: 2, To: 1) // totalTime = 10, returns 0.8
+  254|       |     ```
+  255|       |     - Parameter currTime: current time after coming from background.
+  256|       |     - Parameter toValue: Value when circle is filled. It can be endStroke or an angle.
+  257|       |     - returns: The new position that the circle should be according to new updated time value coming from background.
+  258|       |     */
+  259|      6|    func calculateStartingPoint(By currTime: CGFloat, To newValue: CGFloat) -> CGFloat{
+  260|      6|        if currTime <= 0 {return newValue}
+  261|      1|        let newPos = newValue - ((currTime * newValue) / totalTime)
+  262|      1|        return newPos
+  263|      6|    }
+  264|       |    
+  265|       |}
+  266|       |
+  267|       |// MARK: - Designable
+  268|       |@IBDesignable public extension CircleTimerView{
+  269|       |    // MARK: - Timer
+  270|       |    @IBInspectable
+  271|       |    var fontSize: CGFloat{
+  272|      1|        get{
+  273|      1|            32.0
+  274|      1|        }
+  275|      1|        set{
+  276|      1|            timerLabel.font = timerLabel.font.withSize(newValue)
+  277|      1|        }
+  278|       |    }
+  279|       |    
+  280|       |    @IBInspectable
+  281|       |    var enableTimer: Bool{
+  282|      1|        get{
+  283|      1|            true
+  284|      1|        }
+  285|      1|        set{
+  286|      1|            timerLabel.isHidden = !newValue
+  287|      1|        }
+  288|       |    }
+  289|       |    
+  290|       |    @IBInspectable
+  291|       |    var fontColor: UIColor{
+  292|      1|        get{
+  293|      1|            timerLabel.textColor
+  294|      1|        }
+  295|      1|        set{
+  296|      1|            timerLabel.textColor = newValue
+  297|      1|        }
+  298|       |    }
+  299|       |    
+  300|       |    @IBInspectable
+  301|       |    var canAdaptTimer: Bool{
+  302|      1|        get{
+  303|      1|            true
+  304|      1|        }
+  305|      1|        set{
+  306|      1|            canAdaptTimerFormat = newValue
+  307|      1|            if !newValue{
+  308|      1|                timeTracker.timerFormatDelegate = Hour()
+  309|      1|            }
+  310|      1|        }
+  311|       |    }
+  312|       |
+  313|       |    //MARK: - Background Circle
+  314|       |    
+  315|       |    @IBInspectable
+  316|       |    var backgroundCircleRadius: CGFloat{
+  317|      1|        get{
+  318|      1|            0.0
+  319|      1|        }
+  320|      1|        set{
+  321|      1|            let radius = (min(frame.size.width, frame.size.height) - ringStrokeWidth - 2)/2
+  322|      1|            
+  323|      1|            let circlebackgroundRadius = (newValue*radius)/90
+  324|      1|            
+  325|      1|            let circleBackgroundPath = CGPath(ellipseIn: CGRect(x: -CGFloat(circlebackgroundRadius), y: -CGFloat(circlebackgroundRadius), width: CGFloat(2 * circlebackgroundRadius), height: CGFloat(2 * circlebackgroundRadius)), transform: nil)
+  326|      1|            
+  327|      1|            circleBackgroundLayer.path = circleBackgroundPath
+  328|      1|        }
+  329|       |    }
+  330|       |    
+  331|       |    @IBInspectable
+  332|       |    var backgroundCircleColor: UIColor{
+  333|      1|        get{
+  334|      1|            UIColor.init(cgColor: circleBackgroundLayer.fillColor!)
+  335|      1|        }
+  336|      1|        set{
+  337|      1|            circleBackgroundLayer.fillColor = newValue.cgColor
+  338|      1|        }
+  339|       |    }
+  340|       |
+  341|       |    //MARK: - Timer Circle
+  342|       |    @IBInspectable
+  343|       |    var stroke: CGFloat{
+  344|      1|        get{0.0}
+  345|      1|        set{
+  346|      1|            proportion = newValue/100
+  347|      1|        }
+  348|       |    }
+  349|       |    
+  350|       |    @IBInspectable
+  351|       |    var strokeWidth: CGFloat{
+  352|      1|        get{0.0}
+  353|      1|        set{
+  354|      1|            circleStrokeWidth = newValue
+  355|      1|        }
+  356|       |    }
+  357|       |    
+  358|       |    @IBInspectable
+  359|       |    var completedStrokeWidth: CGFloat{
+  360|      1|        get{0.0}
+  361|      1|        set{
+  362|      1|            ringStrokeWidth = newValue
+  363|      1|        }
+  364|       |    }
+  365|       |    
+  366|       |    @IBInspectable
+  367|       |    var strokeColor: UIColor{
+  368|      1|        get{
+  369|      1|            UIColor.init(cgColor: circleLayer.fillColor!)
+  370|      1|        }
+  371|      1|        set{
+  372|      1|            circleLayer.strokeColor = newValue.cgColor
+  373|      1|        }
+  374|       |    }
+  375|       |    
+  376|       |    @IBInspectable
+  377|       |    var completedStrokeColor: UIColor{
+  378|      1|        get{
+  379|      1|            UIColor.init(cgColor: ringLayer.fillColor!)
+  380|      1|        }
+  381|      1|        set{
+  382|      1|            ringLayer.strokeColor = newValue.cgColor
+  383|      1|        }
+  384|       |    }
+  385|       |    
+  386|       |    @IBInspectable
+  387|       |    var pinColor: UIColor{
+  388|      1|        get{
+  389|      1|            UIColor.init(cgColor: pinLayer.fillColor!)
+  390|      1|        }
+  391|      1|        set{
+  392|      1|            pinLayer.fillColor = newValue.cgColor
+  393|      1|        }
+  394|       |    }
+  395|       |    
+  396|       |    @IBInspectable
+  397|       |    var pinRadius: CGFloat{
+  398|      1|        get{
+  399|      1|            7
+  400|      1|        }set{
+  401|      1|            let radius = (min(frame.size.width, frame.size.height) - ringStrokeWidth - 2)/2
+  402|      1|            let pinPath = CGPath(ellipseIn: CGRect(x: -newValue, y: CGFloat(Int(-radius)) - newValue, width: 2 * newValue, height: 2 * newValue), transform: nil)
+  403|      1|            pinLayer.path = pinPath
+  404|      1|        }
+  405|       |    }
+  406|       |}
+  407|       |
+  408|       |/// Protocol used to update the view in relation to the timer when the phone goes to background
+  409|       |public protocol BackgroundCountable {
+  410|       |    var date: Date{set get}
+  411|       |    var isValid: Bool{get}
+  412|       |    func enterBackground()
+  413|       |    func enterForeground()
+  414|       |}
+
+/Users/fabioms/Desktop/CircularTimer/CircularTimer/Hour+Minute+Second.swift:
+    1|       |//
+    2|       |//  Hour+Minute+Second.swift
+    3|       |//  PODTEST
+    4|       |//
+    5|       |//  Created by Fábio Maciel de Sousa on 16/07/20.
+    6|       |//  Copyright © 2020 Fábio Maciel de Sousa. All rights reserved.
+    7|       |//
+    8|       |
+    9|       |import Foundation
+   10|       |//Protocol used to format time accordingly.
+   11|       |public protocol TimeFormattable{
+   12|       |    func secondsToString(with seconds: Int) -> String
+   13|       |    func stringToSeconds(from text: String) -> Int
+   14|       |}
+   15|       |//MARK: Hour
+   16|       |//Class that formats timer to hours settings. "01:00:00"
+   17|       |public class Hour: TimeFormattable{
+   18|       |    /**
+   19|       |     Method for converting seconds to the formatted string to be displayed on the view
+   20|       |     - Parameter seconds: the current unformatted second from the count down
+   21|       |     - Returns: formatted string of the current time in minutes and seconds
+   22|       |     */
+   23|      5|    public func secondsToString(with seconds: Int) -> String{
+   24|      5|        if seconds < 0 {return ""} //TODO: send error
+   25|      4|        var min = (seconds / 60)
+   26|      4|        let hour = (min / 60) % 60
+   27|      4|        min %= 60
+   28|      4|        let sec = seconds % 60
+   29|      4|        return String(format:"%02i:%02i:%02i",hour, min, sec)
+   30|      5|    }
+   31|       |    
+   32|       |    /**
+   33|       |     Method for converting strings to seconds
+   34|       |     - Parameter text: the text from the label in the view
+   35|       |     - Returns: the amount of seconds for the count down
+   36|       |     */
+   37|      4|    public func stringToSeconds(from text: String) -> Int{
+   38|      4|        if text.contains("-") { return 0}
+   39|      3|        if !text.contains(":") { return 0}
+   40|      2|        let numbers = text.split(separator: ":")
+   41|      2|        if numbers.count != 3 { return 0}
+   42|      1|        guard let hour = Int(numbers[0]) else {return 0}
+   43|      1|        guard var min = Int(numbers[1]) else {return 0}
+   44|      1|        min += hour * 60
+   45|      1|        let sec = min * 60
+   46|      1|        return sec
+   47|      1|    }
+   48|       |}
+   49|       |//MARK: - Minute
+   50|       |//Class that formats timer to minutes settings. "01:00"
+   51|       |public class Minute: TimeFormattable{
+   52|       |    /**
+   53|       |     Method for converting seconds to the formatted string to be displayed on the view
+   54|       |     - Parameter seconds: the current unformatted second from the count down
+   55|       |     - Returns: formatted string of the current time in minutes and seconds
+   56|       |     */
+   57|      2|    public func secondsToString(with seconds: Int) -> String{
+   58|      2|        if seconds < 0 {return ""} //TODO: send error
+   59|      1|        var min = (seconds / 60)
+   60|      1|        min %= 60
+   61|      1|        let sec = seconds % 60
+   62|      1|        return String(format:"%02i:%02i", min, sec)
+   63|      2|    }
+   64|       |    
+   65|       |    /**
+   66|       |     Method for converting strings to seconds
+   67|       |     - Parameter text: the text from the label in the view
+   68|       |     - Returns: the amount of seconds for the count down
+   69|       |     */
+   70|      4|    public func stringToSeconds(from text: String) -> Int{
+   71|      4|        if text.contains("-") { return 0}
+   72|      3|        if !text.contains(":") { return 0}
+   73|      1|        let numbers = text.split(separator: ":")
+   74|      1|        if numbers.count != 2 { return 0}
+   75|      1|        guard let min = Int(numbers[0]) else {return 0}
+   76|      1|        let sec = min * 60
+   77|      1|        return sec
+   78|      1|    }
+   79|       |}
+   80|       |//MARK: - Second
+   81|       |//Class that formats timer to seconds settings. "59"
+   82|       |public class Second: TimeFormattable{
+   83|       |    /**
+   84|       |     Method for converting seconds to the formatted string to be displayed on the view
+   85|       |     - Parameter seconds: the current unformatted second from the count down
+   86|       |     - Returns: formatted string of the current time in minutes and seconds
+   87|       |     */
+   88|      9|    public func secondsToString(with seconds: Int) -> String{
+   89|      9|        if seconds < 0 {return ""} //TODO: send error
+   90|      8|        let sec = seconds % 60
+   91|      8|        return String(format:"%02i", sec)
+   92|      9|    }
+   93|       |    
+   94|       |    /**
+   95|       |     Method for converting strings to seconds
+   96|       |     - Parameter text: the text from the label in the view
+   97|       |     - Returns: the amount of seconds for the count down
+   98|       |     */
+   99|      3|    public func stringToSeconds(from text: String) -> Int{
+  100|      3|        if text.contains("-") { return 0}
+  101|      2|        let sec = Int(text) ?? 0
+  102|      2|        return sec
+  103|      3|    }
+  104|       |}
+
+/Users/fabioms/Desktop/CircularTimer/CircularTimer/TimeTracker.swift:
+    1|       |//
+    2|       |//  TimeTracker.swift
+    3|       |//  PODTEST
+    4|       |//
+    5|       |//  Created by Fábio Maciel de Sousa on 07/06/20.
+    6|       |//  Copyright © 2020 Fábio Maciel de Sousa. All rights reserved.
+    7|       |//
+    8|       |
+    9|       |import Foundation
+   10|       |
+   11|       |///Class created for handling the count down
+   12|       |class TimeTracker{
+   13|       |    
+   14|       |    //MARK:Atributes
+   15|     20|    var timer = Timer()
+   16|       |    var configTime = 60 ///Timer which will be configured
+   17|       |    var defaultTime = 60 ///Time that will go back to when it ends
+   18|       |    var hasEnded = false /// Boolean used when timer ends so it goes back to the default settings
+   19|       |    var timeInterval : TimeInterval = 1 ///seconds at a time
+   20|       |    var date: Date? ///Date used when it goes to background
+   21|       |    var timerFormatDelegate: TimeFormattable?
+   22|       |    
+   23|       |    ///Ends when value gets to zero
+   24|       |    var countDown = 0{
+   25|     17|        willSet{
+   26|     17|            if newValue <= 0{
+   27|      7|                hasEnded = true
+   28|     17|            }
+   29|     17|        }
+   30|       |    }
+   31|       |    
+   32|       |    //MARK: Methods
+   33|       |    /**
+   34|       |     Method for starting the count down from an initial value, and also handling view updates.
+   35|       |     
+   36|       |     If another countDown has already started, a new one won't start.The initial value must be greater than 0
+   37|       |     
+   38|       |     - Parameter minutes: the initial value in minutes which the countDown will start from.
+   39|       |     - Parameter updateView: a closure called each time the timer is updated for handling view updates.
+   40|       |     */
+   41|      4|    func startTimer(updateView: @escaping (String, Bool) -> Void){
+   42|      4|        if timer.isValid{return}
+   43|      4|        countDown = configTime
+   44|      4|        hasEnded = false
+   45|      4|        
+   46|      4|        //Getting the right formatter
+   47|      4|        guard let f = timerFormatDelegate else {return}
+   48|      4|        
+   49|      4|        //Runs timer and updates each second
+   50|      6|        timer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true, block: { (_) in
+   51|      6|            self.countDown -= 1 //Decreases time
+   52|      6|            var convertedTimeText = f.secondsToString(with: self.countDown)
+   53|      6|            
+   54|      6|            if self.hasEnded{ //It changes state, cancels timer and updates view with default value
+   55|      3|                self.timer.invalidate()
+   56|      3|                let defaultTimeText = f.secondsToString(with: self.defaultTime)
+   57|      3|                convertedTimeText = defaultTimeText
+   58|      6|            }
+   59|      6|            
+   60|      6|            updateView(convertedTimeText,self.hasEnded)
+   61|      6|        })
+   62|      4|    }
+   63|       |    
+   64|       |    /**
+   65|       |     Method for stopping the count down.
+   66|       |     
+   67|       |     if the count down was running it pop up a message to the user.
+   68|       |     - Parameter updateView: A closure that is called to update the view.
+   69|       |     */
+   70|      1|    func stopTimer(updateView: @escaping () -> Void){
+   71|      1|        timer.invalidate()
+   72|      1|        updateView()
+   73|      1|    }
+   74|       |    
+   75|       |}
+   76|       |
+

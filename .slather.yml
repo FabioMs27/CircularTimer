@@ -1,0 +1,6 @@
+coverage_service: cobertura_xml
+xcodeproj: CircularTimer.xcodeproj
+scheme: CircularTimer
+output_directory: reports
+ignore:
+  - CircularTimerTests/*
