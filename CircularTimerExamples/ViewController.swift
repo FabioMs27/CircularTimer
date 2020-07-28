@@ -19,7 +19,7 @@ class ViewController: UIViewController {
         if let sd : SceneDelegate = (scene?.delegate as? SceneDelegate) {
             sd.timeTracker = timer
         }
-        timer.setTimerValue(60)
+        timer.setTimerValue(120)
     }
 
     @IBAction func start(_ sender: Any) {

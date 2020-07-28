@@ -19,7 +19,7 @@ Pod::Spec.new do |spec|
 
   spec.license      = { :type => "MIT", :file => "LICENSE" }
 
-  spec.source       = { :git => "https://github.com/FabioMs27/CircleTimer.git", :tag => "#{spec.version}" }
+  spec.source       = { :git => "https://github.com/FabioMs27/CircularTimer.git", :tag => "#{spec.version}" }
 
   spec.author       = { "FabioMs27" => "fabio.ms27@hotmail.com" }
 
