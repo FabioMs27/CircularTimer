@@ -28,10 +28,13 @@ You can customize:
 
 ### Usage example:
 ```
-self.timer.setTimer(60);
-self.timer.start();
-self.timer.pause();
-self.timer.stop();
+self.timer.setTimer(60)
+self.timer.start()
+self.timer.pause()
+self.timer.stop()
+
+self.timer.enterForeground()
+self.timer.enterBackground()
 ```
 
 ## Lisence
