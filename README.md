@@ -3,13 +3,13 @@ A CocoaPods library written in Swift. It's a countdown timer with a circular ani
 ***
 ## Examples:
 ### Animation
-![](https://imgur.com/a/CCerFkQ.gif)
+![](https://media.giphy.com/media/TLJPoQ0rlo21LqsXMp/giphy.gif)
 
 ### Background
-![](https://imgur.com/a/Rtjpi8P.gif)
+![](https://media.giphy.com/media/l2FH5VNZ0LwwyPIi7N/giphy.gif)
 
 ### Configuration
-![](https://imgur.com/a/Xds2CKH.gif)
+![](https://media.giphy.com/media/YOvwyl8kur4x5XCvVM/giphy.gif)
 
 You can customize:
 * Font Size;
@@ -34,7 +34,8 @@ self.timer.pause();
 self.timer.stop();
 ```
 
-##Lisence
+## Lisence
+
 Copyright 2020 Fábio Sousa.
 
 Licensed under the Apache License, Version 2.0 (the "License");
