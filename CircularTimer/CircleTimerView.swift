@@ -28,45 +28,45 @@ public class CircleTimerView: UIView {
     var totalTime: CGFloat = 0.0
     var timeTracker = TimeTracker()
     ///Circle path layer
-    lazy var circleLayer: CAShapeLayer = {
+    lazy var circleLayer: CAShapeLayer = { [weak self] in
         let circleLayer = CAShapeLayer()
         circleLayer.strokeColor = #colorLiteral(red: 0.3490196078, green: 0.4941176471, blue: 0.4862745098, alpha: 1)
         circleLayer.fillColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0)
-        circleLayer.lineWidth = self.circleStrokeWidth
-        self.layer.addSublayer(circleLayer)
+        circleLayer.lineWidth = self?.circleStrokeWidth
+        self?.layer.addSublayer(circleLayer)
         return circleLayer
     }()
     ///Ring layer that goes through the circle path
-    lazy var ringLayer: CAShapeLayer = {
+    lazy var ringLayer: CAShapeLayer = { [weak self] in
         let ringlayer = CAShapeLayer()
         ringlayer.fillColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0)
         ringlayer.strokeColor = #colorLiteral(red: 0.3490196078, green: 0.4941176471, blue: 0.4862745098, alpha: 1)
         ringlayer.lineCap = CAShapeLayerLineCap.round
-        ringlayer.lineWidth = self.ringStrokeWidth
-        self.layer.addSublayer(ringlayer)
+        ringlayer.lineWidth = self?.ringStrokeWidth
+        self?.layer.addSublayer(ringlayer)
         return ringlayer
     }()
     ///Pin layer that follows ring
-    lazy var pinLayer: CAShapeLayer = {
+    lazy var pinLayer: CAShapeLayer = { [weak self] in
         let pinlayer = CAShapeLayer()
         pinlayer.fillColor = #colorLiteral(red: 0.3490196078, green: 0.4941176471, blue: 0.4862745098, alpha: 1)
-        self.layer.addSublayer(pinlayer)
+        self?.layer.addSublayer(pinlayer)
         return pinlayer
     }()
     ///Circle background
-    lazy var circleBackgroundLayer: CAShapeLayer = {
+    lazy var circleBackgroundLayer: CAShapeLayer = { [weal self] in
         let circleBackground = CAShapeLayer()
         circleBackground.fillColor = #colorLiteral(red: 0.8980392157, green: 0.9019607843, blue: 0.862745098, alpha: 1)
-        self.layer.addSublayer(circleBackground)
+        self?.layer.addSublayer(circleBackground)
         circleBackground.zPosition =  -100
         return circleBackground
     }()
     ///Timer Label
-    lazy var timerLabel: UILabel = {
+    lazy var timerLabel: UILabel = { [weak self] in
         let w: CGFloat = (107.33 * self.frame.width) / 208
         let h: CGFloat = (36.67 * self.frame.height) / 187
-        let x = (self.frame.size.width / 2) - (w / 2)
-        let y = (self.frame.size.height / 2) - (h / 2)
+        let x = (self?.frame.size.width / 2) - (w / 2)
+        let y = (self?.frame.size.height / 2) - (h / 2)
         let timerLabel = UILabel(frame: CGRect(x: x, y: y, width: w, height: h))
         timerLabel.font = UIFont(name: "GillSans-Light", size: 32.0)
         timerLabel.textAlignment = .center
@@ -117,7 +117,7 @@ public class CircleTimerView: UIView {
      - Precondition: Animation can't be running already. Variable `isRunning` must be set to false.
      */
     func animateRing(FromStroke startProportion: CGFloat,FromAngle startPinPos: CGFloat, To endProportion: CGFloat, Duration duration: CFTimeInterval = animationDuration, timing: CAMediaTimingFunctionName? = .linear) {
-        if self.isRunning{return}
+        if self.isRunning{ return }
         
         self.isRunning = true
         let animation = CABasicAnimation(keyPath: "strokeEnd")
@@ -142,7 +142,7 @@ public class CircleTimerView: UIView {
     /**
      Method for removing animation when finished or reseted
      */
-    func removeAnimation(){
+    func removeAnimation() {
         pinLayer.removeAllAnimations()
         ringLayer.removeAllAnimations()
         proportion = 0
@@ -153,15 +153,15 @@ public class CircleTimerView: UIView {
      Method that sets up timer's value.
      - Parameter value: value which will be used on the timer``
      */
-    public func setTimerValue(_ value: Int){
+    public func setTimerValue(_ value: Int) {
         timeTracker.configTime = value
         timeTracker.defaultTime = value
-        if !canAdaptTimerFormat {return}
-        if value >= 60, value < 3600{
+        if !canAdaptTimerFormat { return }
+        if value >= 60, value < 3600 {
             timeTracker.timerFormatDelegate = Minute()
-        }else if value >= 3600{
+        }else if value >= 3600 {
             timeTracker.timerFormatDelegate = Hour()
-        }else{
+        }else {
             timeTracker.timerFormatDelegate = Second()
         }
     }
@@ -170,13 +170,13 @@ public class CircleTimerView: UIView {
 /// Extension for the methods regarding counting on background
 extension CircleTimerView: BackgroundCountable{
     
-    public var isValid: Bool{
-        get{
+    public var isValid: Bool {
+        get {
             return timeTracker.timer.isValid
         }
     }
     ///Call the timer's to start closure and update view
-    public func startTimer(){
+    public func startTimer() {
         timeTracker.startTimer { (countDown, hasEnded) in
             self.timerLabel.text = countDown
             if hasEnded{
@@ -192,26 +192,26 @@ extension CircleTimerView: BackgroundCountable{
         }
     }
     ///Call the timer to stop and update view
-    public func stopTimer(){
+    public func stopTimer() {
         resumeAnimation()
         timeTracker.timer.invalidate()
         timeTracker.configTime = timeTracker.defaultTime
         removeAnimation()
     }
     ///Call the timer to pause and update view
-    public func pauseTimer(){
+    public func pauseTimer() {
         timeTracker.configTime = timeTracker.countDown
         timeTracker.timer.invalidate()
         pauseAnimation()
     }
     ///Update the view by starting paused animation
-    func pauseAnimation(){
+    func pauseAnimation() {
         let pausedTime = layer.convertTime(CACurrentMediaTime(), from: nil)
         layer.speed = 0.0
         layer.timeOffset = pausedTime
     }
     ///Call the timer to resume and update the view
-    func resumeAnimation(){
+    func resumeAnimation() {
         let pausedTime = layer.timeOffset
         layer.speed = 1.0
         layer.timeOffset = 0.0
@@ -224,7 +224,7 @@ extension CircleTimerView: BackgroundCountable{
      Enter background and keep counting.
      This method should be used in the SceneDelegate when it goes to the background so it gets the time which you entered Background.
      */
-    public func enterBackground(){
+    public func enterBackground() {
         date = Date()
         totalTime = CGFloat(timeTracker.defaultTime)
         wentToBackground = true
@@ -233,8 +233,8 @@ extension CircleTimerView: BackgroundCountable{
     Enter Foreground and update View.
     This method should be used in the SceneDelegate when it goes to the Foreground so it gets the current time and update the view.
     */
-    public func enterForeground(){
-        if !wentToBackground{return}
+    public func enterForeground() {
+        if !wentToBackground{ return }
         self.isRunning = false
         self.wentToBackground = false
         let seconds = Int(date.distance(to: Date()))
@@ -256,8 +256,8 @@ extension CircleTimerView: BackgroundCountable{
      - Parameter toValue: Value when circle is filled. It can be endStroke or an angle.
      - returns: The new position that the circle should be according to new updated time value coming from background.
      */
-    func calculateStartingPoint(By currTime: CGFloat, To newValue: CGFloat) -> CGFloat{
-        if currTime <= 0 {return newValue}
+    func calculateStartingPoint(By currTime: CGFloat, To newValue: CGFloat) -> CGFloat {
+        if currTime <= 0 { return newValue }
         let newPos = newValue - ((currTime * newValue) / totalTime)
         return newPos
     }
@@ -265,10 +265,10 @@ extension CircleTimerView: BackgroundCountable{
 }
 
 // MARK: - Designable
-@IBDesignable public extension CircleTimerView{
+@IBDesignable public extension CircleTimerView {
     // MARK: - Timer
     @IBInspectable
-    var fontSize: CGFloat{
+    var fontSize: CGFloat {
         get{
             32.0
         }
@@ -394,10 +394,10 @@ extension CircleTimerView: BackgroundCountable{
     }
     
     @IBInspectable
-    var pinRadius: CGFloat{
-        get{
+    var pinRadius: CGFloat {
+        get {
             7
-        }set{
+        }set {
             let radius = (min(frame.size.width, frame.size.height) - ringStrokeWidth - 2)/2
             let pinPath = CGPath(ellipseIn: CGRect(x: -newValue, y: CGFloat(Int(-radius)) - newValue, width: 2 * newValue, height: 2 * newValue), transform: nil)
             pinLayer.path = pinPath

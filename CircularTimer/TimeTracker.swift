@@ -9,7 +9,7 @@
 import Foundation
 
 ///Class created for handling the count down
-class TimeTracker{
+class TimeTracker {
     
     //MARK:Atributes
     var timer = Timer()
@@ -21,9 +21,9 @@ class TimeTracker{
     var timerFormatDelegate: TimeFormattable?
     
     ///Ends when value gets to zero
-    var countDown = 0{
-        willSet{
-            if newValue <= 0{
+    var countDown = 0 {
+        willSet {
+            if newValue <= 0 {
                 hasEnded = true
             }
         }
@@ -38,26 +38,26 @@ class TimeTracker{
      - Parameter minutes: the initial value in minutes which the countDown will start from.
      - Parameter updateView: a closure called each time the timer is updated for handling view updates.
      */
-    func startTimer(updateView: @escaping (String, Bool) -> Void){
-        if timer.isValid{return}
+    func startTimer(updateView: @escaping (String, Bool) -> Void) {
+        if timer.isValid { return }
         countDown = configTime
         hasEnded = false
         
         //Getting the right formatter
-        guard let f = timerFormatDelegate else {return}
+        guard let f = timerFormatDelegate else { return }
         
         //Runs timer and updates each second
-        timer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true, block: { (_) in
+        timer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: true, block: { [weak self] (_) in
             self.countDown -= 1 //Decreases time
-            var convertedTimeText = f.secondsToString(with: self.countDown)
+            var convertedTimeText = f.secondsToString(with: self?.countDown)
             
-            if self.hasEnded{ //It changes state, cancels timer and updates view with default value
-                self.timer.invalidate()
-                let defaultTimeText = f.secondsToString(with: self.defaultTime)
+            if self?.hasEnded { //It changes state, cancels timer and updates view with default value
+                self?.timer.invalidate()
+                let defaultTimeText = f.secondsToString(with: self?.defaultTime)
                 convertedTimeText = defaultTimeText
             }
             
-            updateView(convertedTimeText,self.hasEnded)
+            updateView(convertedTimeText,self?.hasEnded)
         })
     }
     
@@ -67,7 +67,7 @@ class TimeTracker{
      if the count down was running it pop up a message to the user.
      - Parameter updateView: A closure that is called to update the view.
      */
-    func stopTimer(updateView: @escaping () -> Void){
+    func stopTimer(updateView: @escaping () -> Void) {
         timer.invalidate()
         updateView()
     }
